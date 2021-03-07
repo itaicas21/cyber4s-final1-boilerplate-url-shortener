@@ -4,9 +4,22 @@ const router = express.Router();
 const fetch = require("node-fetch");
 const fs = require("fs");
 const { resourceUsage } = require("process");
+require("dotenv").config();
 const check = RegExp(
   /([--:\w?@%&+~#=]*\.[a-z]{2,4}\/{0,2})((?:[?&](?:\w+)=(?:\w+))+|[--:\w?@%&+~#=]+)?/
 );
+console.log(process.env.NODE_ENV);
+const databaseFileLocation =
+  process.env.NODE_ENV === "development"
+    ? "./backend/devShortURLS.json"
+    : process.env.NODE_ENV === "test"
+    ? "./backend/testShortURLS.json"
+    : "./backend/shortURLS.json";
+
+console.log(databaseFileLocation);
+
+const dataBaseHandler = require("./backend/databaseHandler");
+
 router.use(express.urlencoded({ extended: false }));
 
 router.get("/", (req, res) => {
@@ -14,37 +27,35 @@ router.get("/", (req, res) => {
 });
 
 router.post("/new", async (req, res) => {
-  if (!check.test(req.body.url)) {
+  const URLRequested = req.body.url;
+  if (!check.test(URLRequested)) {
     return res.send("Invalid URL");
   }
-
   try {
-    const response = await fetch(req.body.url);
-    fs.readFile("./shortURLS.json", (error, content) => {
-      // change to process.env.dev tenerary variable. One test and one bins
-      if (error) {
-        console.log("No file Exists");
-        return;
+    await fetch(URLRequested);
+    dataBaseHandler.readFile(databaseFileLocation).then((content) => {
+      const parsedContent = JSON.parse(content);
+      const found = dataBaseHandler.checkForExistingData(
+        parsedContent,
+        URLRequested
+      );
+      if (found) {
+        res.send(found);
       } else {
-        const file = JSON.parse(content);
-        if (
-          // found=return object (maybe change .some array function?)
-          file.some((URLItem) => {
-            console.log(URLItem.URL + "  " + req.body.url);
-            return URLItem.URL === req.body.url;
-          })
-        ) {
-          res.send("found");
-        } else {
-          //create object
-          res.send("created");
-        }
+        res
+          .status(201)
+          .send(
+            dataBaseHandler.updateFile(
+              databaseFileLocation,
+              dataBaseHandler.createDataSet(URLRequested),
+              parsedContent
+            )
+          );
       }
     });
     return;
   } catch (error) {
-    // check if error is because of no internet
-    return res.send("Invalid HostName " + error);
+    return res.send(error);
   }
 });
 module.exports = router;
