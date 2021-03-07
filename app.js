@@ -26,8 +26,9 @@ app.get("/", (req, res) => {
 });
 
 app.get("/saved", (req, res) => {
-  // change to async readFile
-  res.json(JSON.parse(fs.readFileSync(databaseFileLocation)));
+  return databaseHandler.readFile(databaseFileLocation).then((content) => {
+    res.json(JSON.parse(content));
+  });
 });
 
 app.get("/:short_ID", (req, res) => {
@@ -41,9 +42,9 @@ app.get("/:short_ID", (req, res) => {
         parsedContent,
         found
       );
-      return res.redirect(found.URL);
+      return res.redirect(303, found.URL);
     } else {
-      return res.send("NO ID");
+      return res.status(200).send("Not Found");
     }
   });
 });
