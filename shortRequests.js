@@ -22,10 +22,6 @@ const dataBaseHandler = require("./backend/databaseHandler");
 
 router.use(express.urlencoded({ extended: false }));
 
-router.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
 router.post("/new", async (req, res) => {
   const URLRequested = req.body.url;
   if (!check.test(URLRequested)) {
@@ -55,7 +51,7 @@ router.post("/new", async (req, res) => {
     });
     return;
   } catch (error) {
-    return res.send(error);
+    return res.status(404).send(error);
   }
 });
 module.exports = router;

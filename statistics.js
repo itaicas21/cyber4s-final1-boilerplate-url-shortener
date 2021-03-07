@@ -11,12 +11,12 @@ const databaseHandler = require("./backend/databaseHandler");
 
 router.get("/:short_ID", async (req, res) => {
   const shortID = req.params.short_ID;
-  return res.send(
-    databaseHandler.checkForExistingData(
-      JSON.parse(await databaseHandler.readFile(databaseFileLocation)),
-      shortID
-    )
+  const found = databaseHandler.checkForExistingData(
+    JSON.parse(await databaseHandler.readFile(databaseFileLocation)),
+    shortID
   );
+  if (found) return res.send(found);
+  else return res.send("ShortID Not Found");
 });
 
 module.exports = router;

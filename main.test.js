@@ -1,8 +1,40 @@
 const request = require("supertest");
 const app = require("./app");
 const assert = require("assert");
-let testData = require("./backend/testShortURLS.json");
-const shortID = "sNx6Cv-SwKJMTeyNArQZs"; // Google shortID
+let testData = require("./backend/testShortURLS.json"); // doesn't update after updated database
+const shortID = "sNx6Cv-SwKJMTeyNArQZs"; // Google.com shortID
+const badShortID = "sNx6Cv-SwKJMTeyNArQZssdfs";
+const testSentNewURL = "https://discord.com/";
+const testSentExistURL = "https://www.google.com"; // google.com url
+const testBadInput = "blahblahblah";
+const testSentBadURL = "https://discodfgdfgdfgrd.com/";
+
+describe("stats route", () => {
+  it("Returns Stats for specific shortID", (done) => {
+    request(app)
+      .get(`/api/statistics/${shortID}`)
+      .expect(200)
+      .then((res) => {
+        assert.deepStrictEqual(
+          res.body,
+          testData.find((entry) => {
+            return entry.short_ID === shortID;
+          })
+        );
+        done();
+      });
+  });
+
+  it("Returns ShortId not found for badID", (done) => {
+    request(app)
+      .get(`/api/statistics/${badShortID}`)
+      .expect(200)
+      .then((res) => {
+        assert(res.text === "ShortID Not Found");
+        done();
+      });
+  });
+});
 
 describe("App Endpoint Tests", () => {
   it("Recieves all saved websites", (done) => {
@@ -28,9 +60,8 @@ describe("App Endpoint Tests", () => {
         });
     });
     it("Sends NO ID if id not shortened", (done) => {
-      const shortID = "sNx6Cv-SwKJMTeyNArQZssdfs";
       request(app)
-        .get(`/${shortID}`)
+        .get(`/${badShortID}`)
         .expect(200)
         .then((res) => {
           assert(res.text === "Not Found");
@@ -40,22 +71,58 @@ describe("App Endpoint Tests", () => {
   });
 });
 
-describe("stats route", () => {
-  testData = require("./backend/testShortURLS.json");
-  it("Returns Stats for specific shortID", (done) => {
+describe("shortURL route", () => {
+  it("is not a valid URL", (done) => {
     request(app)
-      .get(`/api/statistics/${shortID}`)
+      .post("/api/shorturl/new")
+      .send({ url: testBadInput })
+      .type("form")
+      .then((resp) => {
+        assert(resp.text === "Invalid URL");
+        done();
+      });
+  });
+
+  it("URL does not exist", (done) => {
+    request(app)
+      .post("/api/shorturl/new")
+      .send({ url: testSentBadURL })
+      .type("form")
+      .expect(404)
+      .then((resp) => {
+        assert(resp.body.code === "ENOTFOUND");
+        done();
+      });
+  });
+
+  it("shortID exists", (done) => {
+    request(app)
+      .post("/api/shorturl/new")
+      .send({ url: testSentExistURL })
+      .type("form")
       .expect(200)
-      .then((res) => {
-        assert.deepStrictEqual(
-          res.body,
-          testData.find((entry) => {
-            return entry.short_ID === shortID;
-          })
+      .then((resp) => {
+        assert(
+          resp.body.short_ID ===
+            testData.find((entry) => {
+              return entry.short_ID === shortID;
+            }).short_ID
         );
         done();
       });
   });
-});
 
-describe;
+  it("shortID created", (done) => {
+    request(app)
+      .post("/api/shorturl/new")
+      .send({ url: testSentNewURL })
+      .type("form")
+      .expect(201)
+      .then((resp) => {
+        // assert(
+        //   resp.body ===
+        // );
+        done();
+      });
+  });
+});
