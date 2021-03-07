@@ -8,15 +8,12 @@ require("dotenv").config();
 const check = RegExp(
   /([--:\w?@%&+~#=]*\.[a-z]{2,4}\/{0,2})((?:[?&](?:\w+)=(?:\w+))+|[--:\w?@%&+~#=]+)?/
 );
-console.log(process.env.NODE_ENV);
 const databaseFileLocation =
   process.env.NODE_ENV === "development"
     ? "./backend/devShortURLS.json"
     : process.env.NODE_ENV === "test"
     ? "./backend/testShortURLS.json"
     : "./backend/shortURLS.json";
-
-console.log(databaseFileLocation);
 
 const dataBaseHandler = require("./backend/databaseHandler");
 
@@ -36,17 +33,16 @@ router.post("/new", async (req, res) => {
         URLRequested
       );
       if (found) {
-        res.send(found);
+        res.send({ URL: found.URL, short_ID: found.short_ID });
       } else {
+        const newDataSet = dataBaseHandler.updateFile(
+          databaseFileLocation,
+          dataBaseHandler.createDataSet(URLRequested),
+          parsedContent
+        );
         res
           .status(201)
-          .send(
-            dataBaseHandler.updateFile(
-              databaseFileLocation,
-              dataBaseHandler.createDataSet(URLRequested),
-              parsedContent
-            )
-          );
+          .send({ URL: newDataSet.URL, short_ID: newDataSet.short_ID });
       }
     });
     return;

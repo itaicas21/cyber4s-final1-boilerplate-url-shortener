@@ -1,14 +1,18 @@
 const request = require("supertest");
+const fs = require("fs");
 const app = require("./app");
 const assert = require("assert");
-let testData = require("./backend/testShortURLS.json"); // doesn't update after updated database
+let testData = JSON.parse(fs.readFileSync("./backend/testShortURLS.json")); // doesn't update after updated database
 const shortID = "sNx6Cv-SwKJMTeyNArQZs"; // Google.com shortID
 const badShortID = "sNx6Cv-SwKJMTeyNArQZssdfs";
 const testSentNewURL = "https://discord.com/";
 const testSentExistURL = "https://www.google.com"; // google.com url
 const testBadInput = "blahblahblah";
 const testSentBadURL = "https://discodfgdfgdfgrd.com/";
-
+afterAll(() => {
+  testData.pop();
+  fs.writeFileSync("./backend/testShortURLS.json", JSON.stringify(testData));
+});
 describe("stats route", () => {
   it("Returns Stats for specific shortID", (done) => {
     request(app)
